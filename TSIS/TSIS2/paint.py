@@ -1,10 +1,15 @@
+import datetime
 import pygame
 
 from tools import (
     draw_pencil,
     draw_line,
     draw_rectangle,
+    draw_square,
     draw_circle,
+    draw_right_triangle,
+    draw_equilateral_triangle,
+    draw_rhombus,
     flood_fill
 )
 
@@ -13,9 +18,9 @@ class PaintApp:
     def __init__(self):
         pygame.init()
 
-        self.width = 1000
-        self.height = 700
-        self.toolbar_height = 90
+        self.width = 1100
+        self.height = 750
+        self.toolbar_height = 110
 
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("TSIS2 Paint")
@@ -39,6 +44,7 @@ class PaintApp:
         self.preview_canvas = None
 
         self.text_mode = False
+        self.text_position = None
         self.text_buffer = ""
 
         self.colors = {
@@ -58,11 +64,50 @@ class PaintApp:
         x, y = mouse_pos
         return 0 <= x < self.width and self.toolbar_height <= y < self.height
 
+    def save_canvas(self):
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"paint_{timestamp}.png"
+        pygame.image.save(self.canvas, filename)
+        print(f"Saved as {filename}")
+
+    def confirm_text(self):
+        if self.text_position is None:
+            return
+
+        text_surface = self.font.render(self.text_buffer, True, self.current_color)
+        self.canvas.blit(text_surface, self.text_position)
+
+        self.text_mode = False
+        self.text_position = None
+        self.text_buffer = ""
+
+    def cancel_text(self):
+        self.text_mode = False
+        self.text_position = None
+        self.text_buffer = ""
+
     def handle_keydown(self, event):
+        if self.text_mode:
+            if event.key == pygame.K_RETURN:
+                self.confirm_text()
+                return
+
+            if event.key == pygame.K_ESCAPE:
+                self.cancel_text()
+                return
+
+            if event.key == pygame.K_BACKSPACE:
+                self.text_buffer = self.text_buffer[:-1]
+                return
+
+            if event.unicode:
+                self.text_buffer += event.unicode
+                return
+
         if event.key == pygame.K_ESCAPE:
             self.running = False
 
-        if event.key == pygame.K_p:
+        elif event.key == pygame.K_p:
             self.current_tool = "pencil"
 
         elif event.key == pygame.K_l:
@@ -71,8 +116,20 @@ class PaintApp:
         elif event.key == pygame.K_r:
             self.current_tool = "rectangle"
 
+        elif event.key == pygame.K_s and not (event.mod & pygame.KMOD_CTRL):
+            self.current_tool = "square"
+
         elif event.key == pygame.K_c:
             self.current_tool = "circle"
+
+        elif event.key == pygame.K_h:
+            self.current_tool = "right_triangle"
+
+        elif event.key == pygame.K_j:
+            self.current_tool = "equilateral_triangle"
+
+        elif event.key == pygame.K_k:
+            self.current_tool = "rhombus"
 
         elif event.key == pygame.K_e:
             self.current_tool = "eraser"
@@ -82,8 +139,6 @@ class PaintApp:
 
         elif event.key == pygame.K_t:
             self.current_tool = "text"
-            self.text_mode = True
-            self.text_buffer = ""
 
         elif event.key == pygame.K_1:
             self.brush_size = 2
@@ -109,19 +164,8 @@ class PaintApp:
         elif event.key == pygame.K_y:
             self.current_color = self.colors["yellow"]
 
-        elif event.key == pygame.K_BACKSPACE and self.text_mode:
-            self.text_buffer = self.text_buffer[:-1]
-
-        elif event.key == pygame.K_RETURN and self.text_mode:
-            self.text_mode = False
-
         elif event.key == pygame.K_s and (event.mod & pygame.KMOD_CTRL):
-            pygame.image.save(self.canvas, "paint_output.png")
-            print("Saved as paint_output.png")
-
-        elif self.text_mode:
-            if event.unicode:
-                self.text_buffer += event.unicode
+            self.save_canvas()
 
     def handle_mouse_down(self, event):
         if not self.is_inside_canvas(event.pos):
@@ -134,10 +178,9 @@ class PaintApp:
             return
 
         if self.current_tool == "text":
-            text_surface = self.font.render(self.text_buffer, True, self.current_color)
-            self.canvas.blit(text_surface, canvas_pos)
-            self.text_buffer = ""
             self.text_mode = True
+            self.text_position = canvas_pos
+            self.text_buffer = ""
             return
 
         self.drawing = True
@@ -183,38 +226,34 @@ class PaintApp:
             return
 
         end_pos = self.get_canvas_pos(event.pos)
-
-        if self.current_tool == "line":
-            draw_line(
-                self.canvas,
-                self.current_color,
-                self.start_pos,
-                end_pos,
-                self.brush_size
-            )
-
-        elif self.current_tool == "rectangle":
-            draw_rectangle(
-                self.canvas,
-                self.current_color,
-                self.start_pos,
-                end_pos,
-                self.brush_size
-            )
-
-        elif self.current_tool == "circle":
-            draw_circle(
-                self.canvas,
-                self.current_color,
-                self.start_pos,
-                end_pos,
-                self.brush_size
-            )
+        self.draw_final_shape(self.canvas, self.start_pos, end_pos)
 
         self.drawing = False
         self.start_pos = None
         self.last_pos = None
         self.preview_canvas = None
+
+    def draw_final_shape(self, surface, start_pos, end_pos):
+        if self.current_tool == "line":
+            draw_line(surface, self.current_color, start_pos, end_pos, self.brush_size)
+
+        elif self.current_tool == "rectangle":
+            draw_rectangle(surface, self.current_color, start_pos, end_pos, self.brush_size)
+
+        elif self.current_tool == "square":
+            draw_square(surface, self.current_color, start_pos, end_pos, self.brush_size)
+
+        elif self.current_tool == "circle":
+            draw_circle(surface, self.current_color, start_pos, end_pos, self.brush_size)
+
+        elif self.current_tool == "right_triangle":
+            draw_right_triangle(surface, self.current_color, start_pos, end_pos, self.brush_size)
+
+        elif self.current_tool == "equilateral_triangle":
+            draw_equilateral_triangle(surface, self.current_color, start_pos, end_pos, self.brush_size)
+
+        elif self.current_tool == "rhombus":
+            draw_rhombus(surface, self.current_color, start_pos, end_pos, self.brush_size)
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -248,18 +287,31 @@ class PaintApp:
         surface = self.font.render(tool_text, True, (0, 0, 0))
         self.screen.blit(surface, (15, 45))
 
-        help_text = (
-            "P pencil | L line | R rect | C circle | E eraser | F fill | "
-            "T text | 1/2/3 size | B black Q red W green A blue Y yellow | Ctrl+S save"
+        help_1 = (
+            "P pencil | L line | R rect | S square | C circle | "
+            "H right triangle | J triangle | K rhombus"
         )
-        help_surface = self.font.render(help_text, True, (0, 0, 0))
-        self.screen.blit(help_surface, (15, 68))
+        help_2 = (
+            "E eraser | F fill | T text | 1/2/3 size | "
+            "B black Q red W green A blue Y yellow | Ctrl+S save"
+        )
+
+        self.screen.blit(self.font.render(help_1, True, (0, 0, 0)), (15, 70))
+        self.screen.blit(self.font.render(help_2, True, (0, 0, 0)), (15, 90))
 
     def draw_preview(self):
         if not self.drawing:
             return
 
-        if self.current_tool not in ["line", "rectangle", "circle"]:
+        if self.current_tool not in [
+            "line",
+            "rectangle",
+            "square",
+            "circle",
+            "right_triangle",
+            "equilateral_triangle",
+            "rhombus"
+        ]:
             return
 
         mouse_pos = pygame.mouse.get_pos()
@@ -268,44 +320,18 @@ class PaintApp:
             return
 
         end_pos = self.get_canvas_pos(mouse_pos)
-
         preview = self.preview_canvas.copy()
 
-        if self.current_tool == "line":
-            draw_line(
-                preview,
-                self.current_color,
-                self.start_pos,
-                end_pos,
-                self.brush_size
-            )
-
-        elif self.current_tool == "rectangle":
-            draw_rectangle(
-                preview,
-                self.current_color,
-                self.start_pos,
-                end_pos,
-                self.brush_size
-            )
-
-        elif self.current_tool == "circle":
-            draw_circle(
-                preview,
-                self.current_color,
-                self.start_pos,
-                end_pos,
-                self.brush_size
-            )
-
+        self.draw_final_shape(preview, self.start_pos, end_pos)
         self.screen.blit(preview, (0, self.toolbar_height))
 
     def draw_text_preview(self):
-        if not self.text_mode:
+        if not self.text_mode or self.text_position is None:
             return
 
-        surface = self.font.render(f"Text: {self.text_buffer}", True, (0, 0, 0))
-        self.screen.blit(surface, (600, 10))
+        text_surface = self.font.render(self.text_buffer + "|", True, self.current_color)
+        x, y = self.text_position
+        self.screen.blit(text_surface, (x, y + self.toolbar_height))
 
     def draw(self):
         self.screen.fill((255, 255, 255))

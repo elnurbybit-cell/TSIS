@@ -4,16 +4,19 @@ This project is a Paint application written in Python using Pygame.
 
 ## Features
 
-- Pencil tool
-- Straight line tool with preview
-- Rectangle tool
-- Circle tool
-- Eraser tool
-- Flood fill tool
-- Text tool
+- Pencil freehand tool
+- Straight line tool with live preview
 - Brush sizes: 2, 5, 10
-- Color selection
-- Save canvas as PNG using Ctrl+S
+- Rectangle
+- Square
+- Circle
+- Right triangle
+- Equilateral triangle
+- Rhombus
+- Eraser
+- Flood-fill tool
+- Text tool with live typing
+- Ctrl+S saves canvas as timestamped PNG
 
 ## Project Structure
 
