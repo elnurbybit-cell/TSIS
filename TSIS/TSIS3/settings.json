@@ -1,0 +1,34 @@
+{
+    "width": 500,
+    "height": 700,
+    "fps": 60,
+    "player_speed": 6,
+    "enemy_speed": 5,
+    "road_color": [
+        40,
+        40,
+        40
+    ],
+    "grass_color": [
+        20,
+        120,
+        20
+    ],
+    "player_color": [
+        0,
+        180,
+        255
+    ],
+    "traffic_color": [
+        255,
+        50,
+        50
+    ],
+    "obstacle_color": [
+        180,
+        180,
+        180
+    ],
+    "lane_count": 4,
+    "sound_on": false
+}
